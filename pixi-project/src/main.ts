@@ -9,9 +9,11 @@ import { MenuScene } from "./scenes/MenuScene";
   const menuScene = new MenuScene(sceneManager);
   // Khởi tạo ứng dụng
   await app.init({ 
-    background: "#1099bb", 
-    resizeTo: window,
-    resolution: window.devicePixelRatio || 1
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: 0x1099bb,
+    resolution: window.devicePixelRatio || 1,
+    autoDensity: true
   });
   // Append the application canvas to the document body
   document.getElementById("pixi-container")!.appendChild(app.canvas);

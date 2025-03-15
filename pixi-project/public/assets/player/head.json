@@ -1,0 +1,24 @@
+{
+    "meta": {
+        "image": "head.png",
+        "format": "RGBA8888",
+        "size": {"w": 210, "h":30},
+        "scale": "1"
+    },
+    "frames": {
+        "head_idle_00.png": { "frame": {"x": 0, "y": 0, "w": 30, "h": 30} },
+        "head_run_00.png": { "frame": {"x": 30, "y": 0, "w": 30, "h": 30} },
+        "head_attack_00.png": { "frame": {"x": 60, "y": 0, "w": 30, "h": 30} },
+        "head_jump_00.png": { "frame": {"x": 90, "y": 0, "w": 30, "h": 30} },
+        "head_jump_01.png": { "frame": {"x": 120, "y": 0, "w": 30, "h": 30} },
+        "head_jump_02.png": { "frame": {"x": 150, "y": 0, "w": 30, "h": 30} },
+        "head_jump_03.png": { "frame": {"x": 180, "y": 0, "w": 30, "h": 30} }
+    },
+    "animations": {
+        "head_idle": ["head_idle_00.png"],
+        "head_run": ["head_run_00.png"],
+        "head_jump": ["head_run_00.png","head_run_00.png","head_jump_00.png", "head_jump_01.png","head_jump_02.png",
+                      "head_jump_03.png", "head_run_00.png", "head_run_00.png"],
+        "head_attack": ["head_attack_00.png"]
+    }
+}

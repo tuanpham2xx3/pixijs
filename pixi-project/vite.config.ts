@@ -5,5 +5,10 @@ export default defineConfig({
   server: {
     port: 8080,
     open: true,
+    hmr: true,
+    watch: {
+      usePolling: true
+    }
   },
 });
+

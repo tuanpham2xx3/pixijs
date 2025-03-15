@@ -4,6 +4,7 @@ import {GameplayScene} from './GameplayScene';
 
 export class MenuScene extends BaseScene {
     async onStart(container: PIXI.Container): Promise<void> {
+        console.log('Menu Scene started');
         // Lấy kích thước màn hình từ application
         const app = this.coordinator.getApp();
         const appWidth = app.screen.width;
@@ -37,13 +38,13 @@ export class MenuScene extends BaseScene {
         startButton.cursor = 'pointer';
 
         startButton.on('pointerup', () => {
+            console.log('Start button clicked');
             this.coordinator.gotoScene(new GameplayScene(this.coordinator));
         });
-
         container.addChild(titleText);
         container.addChild(startButton);
+        console.log('Menu Scene setup complete');
     }
-
     onUpdate(delta: number): void {
         // Không cần cập nhật gì cho menu
     }

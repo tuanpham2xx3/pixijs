@@ -1,44 +1,37 @@
 import * as PIXI from 'pixi.js';
 import {BaseScene} from './BaseScenes';
-import {MenuScene} from './MenuScene';
+import { Game } from '../handles/HandleGame';
 
 export class GameplayScene extends BaseScene {
-    private sprite!: PIXI.Sprite; // Sử dụng toán tử ! để báo với TypeScript rằng thuộc tính sẽ được khởi tạo
-    
+    private game?: Game;
+    private container?: PIXI.Container;
+
     async onStart(container: PIXI.Container): Promise<void> {
-        const backButton = new PIXI.Text({
-            text: 'Back to Menu',
-            style: {
-                fontSize: 20,
-                fill: 0xff0000
-            }
-        });
-        backButton.x = 500;
-        backButton.y = 500;
-        backButton.eventMode = 'static';
-        backButton.cursor = 'pointer';
-        backButton.on('pointerup', () => {
-            this.coordinator.gotoScene(new MenuScene(this.coordinator));
-        });
-
-        // Load asset with correct path format for Vite (leading slash)
-        await PIXI.Assets.load('/assets/bunny.png');
-        const sprite = PIXI.Sprite.from('/assets/bunny.png');
-        sprite.anchor.set(0.5);
-        sprite.x = 600;
-        sprite.y = 600;
-
-        container.addChild(backButton);
-        container.addChild(sprite);
-
-        this.sprite = sprite; // Lưu tham chiếu để cập nhật trong `onUpdate`
+        this.container = container;
+        console.log('Gameplay Scene đang tải.');
+        // Tạo instance của Game
+        this.game = new Game();
+        
+        // Khởi tạo game
+        await this.game.init();
+        
+        // Thêm stage của game vào container của scene
+        this.container.addChild(this.game.getStage());
+        
+        console.log('Gameplay Scene tải xong.');
     }
 
-    onUpdate(delta: number): void {
-        this.sprite.rotation += delta * 0.01; // Xoay sprite mỗi frame
+    onUpdate(deltaTime: number): void {
+        // Game đã có ticker riêng nên không cần gọi update ở đây
     }
 
     async onFinish(): Promise<void> {
+        // Dọn dẹp game
+        if (this.game) {
+            this.game = undefined;
+        }
+        
         console.log('Gameplay Scene kết thúc.');
     }
 }
+
