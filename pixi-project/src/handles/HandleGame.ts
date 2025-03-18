@@ -2,16 +2,18 @@ import { Application, Assets, Sprite, Texture } from "pixi.js";
 import { Player} from '../entities/Player';
 import { HandleControls } from './HandleControls';
 import * as PIXI from 'pixi.js';
+import {Camera} from '../untils/CameraModule';
 
 export class Game {
     private app: Application;
     private player?: Player;
     private controls!: HandleControls;
     private background?: Sprite;
+    private camera?:Camera;
   
-    constructor() {
+    constructor(app: Application) {
       console.log('Game constructor called');
-      this.app = new Application();
+      this.app = app ;
     }
 
     private async loadBackground() {
@@ -35,6 +37,9 @@ export class Game {
         this.app.stage.removeChild(tempBackground);
         this.app.stage.addChild(this.background);
         
+        // Đặt background ở dưới cùng của stage
+        this.background.zIndex = -1;
+        
         return true;
       } catch (error) {
         console.error('Không thể load background:', error);
@@ -46,14 +51,7 @@ export class Game {
       console.log('Game init started');
       
       try {
-        // Khởi tạo ứng dụng
-        await this.app.init({
-          width: window.innerWidth,
-          height: window.innerHeight,
-          resizeTo: window
-        });
         console.log('Application initialized');
-
         // Load background
         await this.loadBackground();
         
@@ -88,10 +86,28 @@ export class Game {
 
         // Khởi tạo player - QUAN TRỌNG
         this.player.initialize();
+        //CAMERA
+        this.camera = new Camera(this.app, {
+          target: this.player ,
+          bounds: { x: -500, y: -500, width: 500, height: 500 },
+          lerp: 0.1 // Camera di chuyển mượt
+        });
+        if (this.player.parent) {
+          this.player.parent.removeChild(this.player);
+        }
+        this.camera.addChild(this.player);
+        // Thêm CAMERACAMERA vào stage
+        this.app.stage.addChild(this.camera.container);
 
-        // Thêm player vào stage
-        this.app.stage.addChild(this.player);
-        console.log('Player added to stage');
+          // Thêm game loop để cập nhật camera
+        this.app.ticker.add(() => {
+            if (this.camera) {
+                this.camera.update();
+            }
+        });
+      
+
+
 
         // Sau đó mới tạo controls với player
         this.controls = new HandleControls(this.app, this.player);
@@ -114,6 +130,6 @@ export class Game {
     }
 
     getStage() {
-      return this.app.stage;
+      return this.camera ? this.camera.container : this.app.stage;
     }
 }

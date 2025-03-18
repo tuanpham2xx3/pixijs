@@ -9,8 +9,8 @@ export class GameplayScene extends BaseScene {
     async onStart(container: PIXI.Container): Promise<void> {
         this.container = container;
         console.log('Gameplay Scene đang tải.');
-        // Tạo instance của Game
-        this.game = new Game();
+        // Tạo instance của Game và truyền app từ SceneManager
+        this.game = new Game(this.coordinator.getApp());
         
         // Khởi tạo game
         await this.game.init();
