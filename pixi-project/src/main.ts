@@ -17,8 +17,6 @@ import { MenuScene } from "./scenes/MenuScene";
   });
   // Append the application canvas to the document body
   document.getElementById("pixi-container")!.appendChild(app.canvas);
-
-
   window.addEventListener('resize', () => {
       // xử lý thay đổi kích cỡ
   });

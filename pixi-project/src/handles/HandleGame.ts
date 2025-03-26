@@ -1,4 +1,4 @@
-import { Application, Assets, Sprite, Texture } from "pixi.js";
+import { Application, Assets, Container, Sprite, Texture } from "pixi.js";
 import { Player} from '../entities/Player';
 import { HandleControls } from './HandleControls';
 import * as PIXI from 'pixi.js';
@@ -8,40 +8,70 @@ export class Game {
     private player?: Player;
     private controls!: HandleControls;
     private background?: Sprite;
-  
+    private backgroundDuplicate?: Sprite;
+    private scrollSpeed = 2;
+    private backgroundContainer: Container;  // Add this to contain backgrounds
+
     constructor() {
       console.log('Game constructor called');
       this.app = new Application();
+      this.backgroundContainer = new Container();
     }
 
     private async loadBackground() {
       try {
-        // Tạo background tạm thời với màu đơn giản
-        const tempBackground = new PIXI.Graphics();
-        tempBackground.beginFill(0x1099bb);
-        tempBackground.drawRect(0, 0, window.innerWidth, window.innerHeight);
-        tempBackground.endFill();
-        this.app.stage.addChild(tempBackground);
-
-        // Load background image
         const backgroundTexture = await Assets.load('assets/background/background.png');
         
-        // Tạo sprite từ texture
+        // Create container and add it to stage
+        this.app.stage.addChild(this.backgroundContainer);
+        
+        // Create background sprites
         this.background = new Sprite(backgroundTexture);
-        this.background.width = window.innerWidth;
-        this.background.height = window.innerHeight;
+        this.backgroundDuplicate = new Sprite(backgroundTexture);
+
+        // Calculate scaling to fit width and add a small overlap
+        const scaleX = window.innerWidth / backgroundTexture.width;
+        const scaleY = (window.innerHeight + 2) / backgroundTexture.height; // Add 2px overlap
+        const scale = Math.max(scaleX, scaleY);
         
-        // Thay thế background tạm thời bằng sprite mới
-        this.app.stage.removeChild(tempBackground);
-        this.app.stage.addChild(this.background);
+        this.background.scale.set(scale);
+        this.backgroundDuplicate.scale.set(scale);
+
+        // Position backgrounds with slight overlap
+        this.background.y = 0;
+        this.backgroundDuplicate.y = (this.background.height - 10); // 1px overlap
         
+        // Add backgrounds to container
+        this.backgroundContainer.addChild(this.background);
+        this.backgroundContainer.addChild(this.backgroundDuplicate);
+
+        // Set up scrolling animation with precise positioning
+        this.app.ticker.add(() => {
+            if (this.background && this.backgroundDuplicate) {
+                // Move both backgrounds down
+                this.background.y += this.scrollSpeed;
+                this.backgroundDuplicate.y += this.scrollSpeed;
+
+                // Reset positions with precise calculations
+                const resetPosition = (sprite: Sprite, otherSprite: Sprite) => {
+                    if (sprite.y >= window.innerHeight) {
+                        sprite.y = otherSprite.y - sprite.height;
+                    }
+                };
+
+                resetPosition(this.background, this.backgroundDuplicate);
+                resetPosition(this.backgroundDuplicate, this.background);
+            }
+        });
+
         return true;
       } catch (error) {
-        console.error('Không thể load background:', error);
+        console.error('Cannot load background:', error);
         return false;
       }
     }
 
+    // Update resize handler
     async init() {
       console.log('Game init started');
       
@@ -100,10 +130,15 @@ export class Game {
 
         // Xử lý resize window
         window.addEventListener('resize', () => {
-          if (this.background) {
-            this.background.width = window.innerWidth;
-            this.background.height = window.innerHeight;
-          }
+            if (this.background && this.backgroundDuplicate) {
+                const texture = this.background.texture;
+                const scaleX = window.innerWidth / texture.width;
+                
+                this.background.scale.set(scaleX);
+                this.backgroundDuplicate.scale.set(scaleX);
+                
+                this.backgroundDuplicate.y = this.background.y - this.background.height;
+            }
         });
 
         console.log('Game initialization complete');

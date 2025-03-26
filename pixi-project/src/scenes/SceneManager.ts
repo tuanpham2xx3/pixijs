@@ -4,33 +4,57 @@ import { BaseScene } from './BaseScenes';
 export class SceneManager {
     private app: PIXI.Application;
     private currentScene: BaseScene | null = null;
+    private isTransitioning: boolean = false;
 
     constructor(app: PIXI.Application) {
         this.app = app;
+        // Add ticker directly since app is already initialized
+        const boundUpdate = (delta: number) => {
+            if (this.currentScene && !this.isTransitioning) {
+                this.currentScene.onUpdate(delta);
+            }
+        };
+        app.ticker?.add((ticker) => boundUpdate(ticker.deltaTime));
     }
 
-    // Lấy đối tượng application
+    // Remove initTicker method since we don't need it anymore
+    // Remove requestAnimationFrame from update method
+    update(delta: number): void {
+        if (this.currentScene && !this.isTransitioning) {
+            this.currentScene.onUpdate(delta);
+        }
+    }
+
     getApp(): PIXI.Application {
         return this.app;
     }
 
-    // Chuyển đổi giữa các scene
     async gotoScene(newScene: BaseScene): Promise<void> {
-        if (this.currentScene) {
-            await this.currentScene.onFinish(); // Gọi phương thức dọn dẹp của scene hiện tại
-            this.app.stage.removeChildren();   // Xóa tất cả các đối tượng khỏi stage
-        }
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
 
-        const container = new PIXI.Container();
-        await newScene.onStart(container);     // Khởi tạo scene mới
-        this.app.stage.addChild(container);   // Thêm container vào stage
-        this.currentScene = newScene;         // Cập nhật scene hiện tại
+        try {
+            if (this.currentScene) {
+                await this.currentScene.onFinish();
+                this.app.stage.removeChildren();
+            }
+
+            const container = new PIXI.Container();
+            this.app.stage.addChild(container);
+            this.currentScene = newScene;
+            
+            // Start scene immediately
+            await newScene.onStart(container);
+            // Force first update
+            this.currentScene.onUpdate(0);
+        } catch (error) {
+            console.error('Scene transition error:', error);
+        } finally {
+            this.isTransitioning = false;
+        }
     }
 
-    // Cập nhật logic của scene hiện tại mỗi frame
-    update(delta: number): void {
-        if (this.currentScene) {
-            this.currentScene.onUpdate(delta);
-        }
+    getGameContainer() {
+        return this.app.stage;
     }
 }
