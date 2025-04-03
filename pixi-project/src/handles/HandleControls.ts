@@ -1,44 +1,48 @@
 export class HandleControls {
   private app: any;
   private player: any;
+  private keys: Set<string> = new Set();
 
-  constructor(app: any, player:any) {
+  constructor(app: any, player: any) {
     this.app = app;
     this.player = player;
   }
 
   public setupControls() {
-    // Các phím điều khiển
-    const keys: { [key:string]: boolean } = {};
-    
     window.addEventListener('keydown', (e) => {
-      keys[e.key] = true;
+      this.keys.add(e.key.toLowerCase());
     });
 
     window.addEventListener('keyup', (e) => {
-      keys[e.key] = false;
+      this.keys.delete(e.key.toLowerCase());
     });
 
     // Game loop xử lý điều khiển
     this.app.ticker.add(() => {
-      if(!this.player) return;
+      if (!this.player) return;
 
-      let isMoving = false;
-      if (keys['ArrowUp'] || keys[' '] || keys['w'] || keys['W']) {
-        this.player.jump();
-      }
-      if (keys['f'] || keys['F']) {
-        this.player.attack();
-      }
-      if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
-        this.player.moveLeft();
-        isMoving = true;
-      }
-      if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+      const up = this.keys.has('arrowup') || this.keys.has('w');
+      const down = this.keys.has('arrowdown') || this.keys.has('s');
+      const left = this.keys.has('arrowleft') || this.keys.has('a');
+      const right = this.keys.has('arrowright') || this.keys.has('d');
+
+      if (up && right) {
+        this.player.moveUpRight();
+      } else if (up && left) {
+        this.player.moveUpLeft();
+      } else if (down && right) {
+        this.player.moveDownRight();
+      } else if (down && left) {
+        this.player.moveDownLeft();
+      } else if (up) {
+        this.player.moveUp();
+      } else if (down) {
+        this.player.moveDown();
+      } else if (right) {
         this.player.moveRight();
-        isMoving = true;
-      }
-      if (!isMoving) {
+      } else if (left) {
+        this.player.moveLeft();
+      } else {
         this.player.idle();
       }
     });

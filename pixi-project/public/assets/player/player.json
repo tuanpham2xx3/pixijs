@@ -16,9 +16,9 @@
         "up_right_01.png": { "frame": {"x": 525, "y": 0, "w": 75, "h": 75} },
         "up_left_00.png": { "frame": {"x": 600, "y": 0, "w": 75, "h": 75} },
         "up_left_01.png": { "frame": {"x": 675, "y": 0, "w": 75, "h": 75} },
-        "down_00": { "frame": {"x": 750, "y": 0, "w": 75, "h": 75} },
-        "down_01": { "frame": {"x": 825, "y": 0, "w": 75, "h": 75} },
-        "down_right_00": { "frame": {"x": 900, "y": 0, "w": 75, "h": 75} },
+        "down_00.png": { "frame": {"x": 750, "y": 0, "w": 75, "h": 75} },
+        "down_01.png": { "frame": {"x": 825, "y": 0, "w": 75, "h": 75} },
+        "down_right_00.png": { "frame": {"x": 900, "y": 0, "w": 75, "h": 75} },
         "down_right_01.png": { "frame": {"x": 975, "y": 0, "w": 75, "h": 75} },
         "down_left_00.png": { "frame": {"x": 1050, "y": 0, "w": 75, "h": 75} },
         "down_left_01.png": { "frame": {"x": 1125, "y": 0, "w": 75, "h": 75} }
@@ -31,6 +31,7 @@
         "up_right": ["up_right_00.png", "up_right_01.png"],
         "up_left": ["up_left_00.png", "up_left_01.png"],
         "down": ["down_00.png", "down_01.png"],
-        "down_right": ["down_right_00.png", "down_right_01.png"]
+        "down_right": ["down_right_00.png", "down_right_01.png"],
+        "down_left": ["down_left_00.png", "down_left_01.png"]
     }
 }

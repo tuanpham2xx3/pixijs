@@ -76,54 +76,37 @@ export class Game {
       console.log('Game init started');
       
       try {
-        // Khởi tạo ứng dụng
         await this.app.init({
           width: window.innerWidth,
           height: window.innerHeight,
           resizeTo: window
         });
-        console.log('Application initialized');
 
         // Load background
         await this.loadBackground();
         
-        // Đăng ký tài nguyên player
-        console.log('Registering player assets...');
-        Assets.add([
-            { alias: 'headAtlas', src: 'assets/player/head.json' },
-            { alias: 'bodyAtlas', src: 'assets/player/body.json' },
-            { alias: 'feetAtlas', src: 'assets/player/feet.json' }
-        ]);
-        
         // Load player assets
         console.log('Loading player assets...');
-        const loadedAssets = await Assets.load(['headAtlas', 'bodyAtlas', 'feetAtlas']);
-        console.log('Loaded assets:', {
-            head: Assets.get('headAtlas'),
-            body: Assets.get('bodyAtlas'),
-            feet: Assets.get('feetAtlas')
-        });
-
-        // Tạo player với resources là Spritesheet
+        const playerSheet = await Assets.load('assets/player/player.png');
+        const playerData = await fetch('assets/player/player.json').then(res => res.json());
+        const playerSpritesheet = new PIXI.Spritesheet(playerSheet, playerData);
+        await playerSpritesheet.parse();
+        
+        console.log('Spritesheet loaded:', playerSpritesheet);
+        
+        // Tạo player với spritesheet
         this.player = new Player({
             x: this.app.screen.width / 2,
             y: this.app.screen.height / 2,
             scale: 1,
-            resources: {
-                head: Assets.get('headAtlas'), // Đảm bảo đây là Spritesheet
-                body: Assets.get('bodyAtlas'),
-                feet: Assets.get('feetAtlas')
-            }
+            spritesheet: playerSpritesheet
         });
-
-        // Khởi tạo player - QUAN TRỌNG
-        this.player.initialize();
 
         // Thêm player vào stage
         this.app.stage.addChild(this.player);
         console.log('Player added to stage');
 
-        // Sau đó mới tạo controls với player
+        // Thiết lập controls
         this.controls = new HandleControls(this.app, this.player);
         this.controls.setupControls();
         console.log('Controls setup complete');

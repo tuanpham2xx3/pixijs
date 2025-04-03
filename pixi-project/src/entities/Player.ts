@@ -1,48 +1,35 @@
 import { Container, Sprite, Assets, Texture, AnimatedSprite, Spritesheet} from "pixi.js";
 
 // Trạng thái
+// Cập nhật lại enum PlayerState
 enum PlayerState {
     IDLE = 'idle',
-    RUN = 'run',
-    JUMP = 'jump',
-    ATTACK = 'attack'
-}
-// Bộ phận
-enum PlayerPart {
-    HEAD = 'head',
-    BODY = 'body',
-    FEET = 'feet'
+    RIGHT = 'right',
+    LEFT = 'left',
+    UP = 'up',
+    UP_RIGHT = 'up_right',
+    UP_LEFT = 'up_left',
+    DOWN = 'down',
+    DOWN_RIGHT = 'down_right',
+    DOWN_LEFT = 'down_left'
 }
 // Interface cho options
 interface PlayerOptions {
     x?: number;
     y?: number;
     scale?: number;
-    resources?: {
-        head: Spritesheet;
-        body: Spritesheet;
-        feet: Spritesheet;
-      };
+    spritesheet?: Spritesheet;
 }
 
 export class Player extends Container {
-    // Khai báo parts có kiểu MAP gồm PlayerPart và Container
-    private parts: Map<PlayerPart, Container> = new Map();
-    // Khai báo kiểu hoạt ảnh cho trạng thái của mỗi bộ phận
-    private animations: Map<PlayerPart, Map<PlayerState, AnimatedSprite>> = new Map();
     // State hiện tại
     private currentState: PlayerState = PlayerState.IDLE;
     // Hướng nhìn ( 1: phải, -1 trái)
     private direction: number = 1;
     // Trạng thái di chuyển
     private isMoving: boolean = false;
-      // Tài nguyên đã tải
-    private resources?: {
-        head: Spritesheet;
-        body: Spritesheet;
-        feet: Spritesheet;
-    };
-    private isJumping: boolean = false;
+    private sprite: AnimatedSprite | null = null;
+    private animations: Map<PlayerState, AnimatedSprite> = new Map();
 
     constructor(options: PlayerOptions = {}) {
         super();
@@ -53,247 +40,108 @@ export class Player extends Container {
         this.scale.set(options.scale || 1);
 
         // Lưu trữ tài nguyên
-        this.resources = options.resources;
-
-        // khơie tạo container cho mỗi bộ phận
-        this.initializeParts();
-    }
-
-    private initializeParts(): void {
-        // Container HEAD
-        const headContainer = new Container();
-        this.addChild(headContainer);
-        this.parts.set(PlayerPart.HEAD, headContainer);
-
-        // BODY
-        const bodyContainer = new Container();
-        this.addChild(bodyContainer);
-        this.parts.set(PlayerPart.BODY, bodyContainer);
-
-        //FEET
-        const feetContainer = new Container();
-        this.addChild(feetContainer);
-        this.parts.set(PlayerPart.FEET, feetContainer);
-
-        // Vị trí
-        headContainer.y = -19;
-        bodyContainer.y = -8;
-        feetContainer.y = 0;
-        if(this.currentState === PlayerState.RUN) {
-            console.log('Running state detected, adjusting feet position');
-            feetContainer.y = -20;
-        }
-
-        // Khởi tạo Maps animations
-        for (const part of Object.values(PlayerPart)) {
-            this.animations.set(part, new Map());
+        if (options.spritesheet) {
+            this.initialize(options.spritesheet);
         }
     }
-
     // LOAD DATASHEET
-    initialize(): void {
-        if (!this.resources) {
-          console.error('Cannot initialize player: resources not provided');
-          return;
-        }
-        // Thiết lập animations cho từng bộ phận
-        this.setupAnimations(PlayerPart.HEAD, this.resources.head);
-        this.setupAnimations(PlayerPart.BODY, this.resources.body);
-        this.setupAnimations(PlayerPart.FEET, this.resources.feet);
-        
-        // Thiết lập trạng thái mặc định
-        this.setState(PlayerState.IDLE);
-        
-        console.log('Player initialized successfully');
-    }
-    // Thiết lập Animation cho mỗi bộ phận
-    private setupAnimations(part: PlayerPart, spritesheet: Spritesheet): void {
-        // Lấy container cho bộ phận này
-        const container = this.parts.get(part);
-        if (!container) return;
-        
-        // Tạo AnimatedSprite cho mỗi trạng thái
+    initialize(spritesheet: Spritesheet): void {
+        // Create default texture array for each state
         for (const state of Object.values(PlayerState)) {
-          // Tên animation trong spritesheet (ví dụ: "head_idle", "body_run")
-          const animationName = `${part}_${state}`;
-          
-          // Kiểm tra xem animation có tồn tại trong spritesheet không
-          if (spritesheet.animations[animationName]) {
-            // Tạo AnimatedSprite từ textures
-            const animatedSprite = new AnimatedSprite(
-              spritesheet.animations[animationName]
-            );
-            
-            // Thiết lập thuộc tính
-            animatedSprite.anchor.set(0.5);
-            animatedSprite.animationSpeed = 0.1;
-            animatedSprite.visible = false;
-            
-            // Thêm vào container
-            container.addChild(animatedSprite);
-            
-            // Lưu trữ reference
-            const stateAnimations = this.animations.get(part);
-            if (stateAnimations) {
-              stateAnimations.set(state as PlayerState, animatedSprite);
+            // Use animations from spritesheet directly
+            if (spritesheet.animations[state]) {
+                const animatedSprite = new AnimatedSprite(spritesheet.animations[state]);
+                animatedSprite.anchor.set(0.5);
+                animatedSprite.animationSpeed = 0.1;
+                animatedSprite.visible = false;
+                
+                this.addChild(animatedSprite);
+                this.animations.set(state, animatedSprite);
+            } else {
+                console.warn(`Animation not found for state: ${state}`);
             }
-          }
         }
-      }
-    
+
+        // Set initial state
+        this.setState(PlayerState.IDLE);
+    }
     // Thay đổi trạng thái Player
     setState(newState: PlayerState): void {
-        //Nếu đang ở trạng thái đó
-        if(this.currentState === newState) return;
+        if (this.currentState === newState) return;
+        
+        // Dừng animation hiện tại
+        const currentAnim = this.animations.get(this.currentState);
+        if (currentAnim) {
+            currentAnim.stop();
+            currentAnim.visible = false;
+        }
 
-        // Trạng thái mới
+        // Kích hoạt animation mới
+        const newAnim = this.animations.get(newState);
+        if (newAnim) {
+            newAnim.scale.x = Math.abs(newAnim.scale.x) * this.direction;
+            newAnim.visible = true;
+            newAnim.gotoAndPlay(0);
+        }
+
         this.currentState = newState;
-
-        // Cập nhật animation mỗi phần
-        for(const part of Object.values(PlayerPart)) {
-            this.updatePartAnimation(part, newState);
-        }
-        const feetContainer = this.parts.get(PlayerPart.FEET);
-        if (feetContainer) {
-            if (newState === PlayerState.RUN) {
-                feetContainer.y = -0.5;
-            } else {
-                feetContainer.x = 0; // Reset về vị trí mặc định
-            }
-        }
     }
 
-    // Cập nhật Animation cho mỗi bộ phận
-    private updatePartAnimation(part: PlayerPart,state:PlayerState): void {
-        //Lấy map animation cho bộ phận này
-        const partAnimations = this.animations.get(part);
-        if(!partAnimations) return;
-
-        // Dừng animation của state hiện tại
-        for (const anim of partAnimations.values()) {
-            anim.stop();
-            anim.visible = false;
-        }
-
-        // Animation cho state mới
-        const newAnimation = partAnimations.get(state);
-
-        if (newAnimation) {
-            // update direction (hướng nhìn)
-            newAnimation.scale.x = Math.abs(newAnimation.scale.x) * this.direction;
-
-            // Hiện thị và chạy animation mới
-            newAnimation.visible = true;
-            newAnimation.gotoAndPlay(0);
-        }
-    }
-
-    // di chuyển trái
-    moveLeft(): void {
-        this.direction = -1;
-        this.x -= 2;
-        this.isMoving = true;
-
-        // Update direction
-        this.updateDirection();
-
-        if (this.currentState !== PlayerState.JUMP) {
-            this.setState(PlayerState.RUN);
-        }
-        
-    }
-    // di chuyển phải
-    moveRight(): void {
-        this.direction = 1;
-        this.x += 2;
-        this.isMoving = true;
-
-        // Update direction
-        this.updateDirection();
-
-        if (this.currentState !== PlayerState.JUMP) {
-            this.setState(PlayerState.RUN);
-        }
-    }
-
-    // Update direction cho các bộ phận
-    private updateDirection(): void {
-        for (const part of Object.values(PlayerPart)) {
-            const partAnimations = this.animations.get(part);
-            if(!partAnimations) continue;
-
-            const currentAnim = partAnimations.get(this.currentState);
-            if (currentAnim) {
-                currentAnim.scale.x = Math.abs(currentAnim.scale.x) * this.direction;
-            }
-        }
-    }
-
-    //Nhảy
-    jump(): void {
-        if (!this.isJumping) {
-            this.isJumping = true;
-            this.setState(PlayerState.JUMP);
-    
-            // Mô phỏng jump
-            const jumpHeight = 100;
-            const jumpDuration = 500;
-    
-            //Animation jump
-            const startY = this.y;
-            let startTime = performance.now();
-            
-            const animateJump = (currentTime: number) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / jumpDuration, 1);
-    
-                // nhảy theo đường cong
-                const jumpProgress = -4 * Math.pow(progress - 0.5, 2) + 1;
-                this.y = startY - jumpHeight * jumpProgress;
-    
-                if (progress < 1) {
-                    requestAnimationFrame(animateJump);
-                } else {
-                    this.y = startY; // trở lại vị trí y cũ
-                    this.isJumping = false;
-                    if (this.isMoving) {
-                        this.setState(PlayerState.RUN);
-                    } else {
-                        this.setState(PlayerState.IDLE);
-                    }
-                }
-            };
-            requestAnimationFrame(animateJump);
-        }
-    }
-    //Tấn công
-    attack(): void {
-        this.setState(PlayerState.ATTACK);
-        
-        //
-        setTimeout(() => {
-            this.setState(PlayerState.IDLE);
-        },500); // 500ms thời gian tấn công
-    }
-    //đứng yên
-    idle(): void {
-        this.isMoving = false;
-        if (this.currentState !== PlayerState.JUMP && this.currentState !== PlayerState.ATTACK) {
-            this.setState(PlayerState.IDLE);
-        }
-    }
     //dọn dẹp khi không dùng
     destroy(options?: { children?: boolean; texture?: boolean; baseTexture?: boolean; }): void {
-        // Dừng tất cả animations
-        for (const part of Object.values(PlayerPart)) {
-          const partAnimations = this.animations.get(part);
-          if (partAnimations) {
-            for (const anim of partAnimations.values()) {
-              anim.stop();
-            }
-          }
+        for (const anim of this.animations.values()) {
+            anim.stop();
         }
-        
         super.destroy(options);
+    }
+
+    // Thêm các phương thức di chuyển
+    moveRight(): void {
+        this.x += 2;
+        this.setState(PlayerState.RIGHT);
+    }
+
+    moveLeft(): void {
+        this.x -= 2;
+        this.setState(PlayerState.LEFT);
+    }
+
+    moveUp(): void {
+        this.y -= 2;
+        this.setState(PlayerState.UP);
+    }
+
+    moveDown(): void {
+        this.y += 2;
+        this.setState(PlayerState.DOWN);
+    }
+
+    moveUpRight(): void {
+        this.x += 2;
+        this.y -= 2;
+        this.setState(PlayerState.UP_RIGHT);
+    }
+
+    moveUpLeft(): void {
+        this.x -= 2;
+        this.y -= 2;
+        this.setState(PlayerState.UP_LEFT);
+    }
+
+    moveDownRight(): void {
+        this.x += 2;
+        this.y += 2;
+        this.setState(PlayerState.DOWN_RIGHT);
+    }
+
+    moveDownLeft(): void {
+        this.x -= 2;
+        this.y += 2;
+        this.setState(PlayerState.DOWN_LEFT);
+    }
+
+    // Dừng di chuyển
+    idle(): void {
+        this.setState(PlayerState.IDLE);
     }
 }
